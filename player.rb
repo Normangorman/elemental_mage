@@ -62,8 +62,11 @@ class Player < GameObject
 
 		#Animation control
 		#THIS LINE MIGHT CAUSE BUGS!!!
-		@animation = @animations[:idle] unless self.holding_any?(:right, :left, :up, :down)
+		@animation = @animations[:idle] unless (self.holding_any?(:right, :left, :up, :down) || @jumping == true)
 		@image = @animation.next
+		if @jumping and self.velocity_y > 0
+			@animation = @animations[:falling]
+		end
 
 		#Ball control ;)
 		if @projectile
