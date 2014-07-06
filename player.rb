@@ -1,6 +1,10 @@
 class Player < GameObject
 	trait :velocity
 	trait :timer
+	trait :collision_detection
+	trait :bounding_box, debug: true
+
+	attr_reader :on_platform
 
 	def initialize(options={})
 		super
@@ -24,12 +28,10 @@ class Player < GameObject
 			looking_down: 	add_anim.call("looking_down_80x80.png"),
 			jumping: 		add_anim.call("jumping_80x80.png"),
 		}
+		self.zorder = ZOrder::PLAYER
 
 		#Default to idle animation
 		change_anim(:idle)
-		
-		#Gravity
-		self.acceleration_y = 0.4
 
 		#Used to prevent jumping again until landed
 		@jumping = false
@@ -43,8 +45,12 @@ class Player < GameObject
 	end
 
 	def update
-		if self.y > $ground_y - 50
-			self.y = $ground_y - 50
+		
+		#Physics
+		self.velocity_x *= 0.8
+
+		if self.y > $ground_y
+			self.y = $ground_y
 			@jumping = false
 		end
 
@@ -64,13 +70,47 @@ class Player < GameObject
 			if holding?(@grow_button)
 				@projectile.x = self.x
 				@projectile.y = self.y
-				@projectile.factor_x += 0.03 unless @projectile.factor_x >= 3
-				@projectile.factor_y += 0.03 unless @projectile.factor_y >= 3
+				@projectile.factor_x *= 1.05 unless @projectile.factor_x >= 3
+				@projectile.factor_y *= 1.05 unless @projectile.factor_y >= 3
 			else
 				@projectile.release(calculate_firing_direction)
 				@projectile = nil
 				start_cooldown
 			end
+		end
+
+		handle_collisions
+	end
+
+	def handle_collisions
+		#platform collisions
+		self.acceleration_y = 0.4
+
+		if @on_platform
+			#Checks to see whether we walked off the platform
+			x = @platform.x
+			width = 0.5 * @platform.image.width
+			@on_platform = false unless self.x.between?(x - width, x + width)
+
+			#Gravity is disabled when on a platform
+			self.acceleration_y = 0
+			@jumping = false
+
+		else
+			self.each_collision(Platform) do |player, platform|
+				#The resting height is the point at which the player appears to be standing on the platform
+			    resting_height = platform.y - 0.5 * platform.image.height - 0.5 * self.image.height
+
+			    if self.previous_y < resting_height
+				    @on_platform = true
+				    @platform = platform
+
+				    self.velocity_y = 0
+				    self.acceleration_y = 0
+				    self.y = resting_height
+			    end
+			end
+			
 		end
 
 	end
@@ -80,14 +120,14 @@ class Player < GameObject
 		@current_direction = :east
 
 		change_anim(:walk_right)
-		self.x += 5
+		self.velocity_x += 2 unless self.velocity_x >= 10
 	end
 
 	def move_left
 		@current_direction = :west
 
 		change_anim(:walk_left)
-		self.x -= 5
+		self.velocity_x -= 2 unless self.velocity_x <= -10
 	end
 
 	def jump
@@ -95,24 +135,28 @@ class Player < GameObject
 		return if @jumping
 
 		change_anim(:jumping)
-		self.velocity_y = -12
+		self.velocity_y = -15
+
 		@jumping = true
+		@on_platform = false
 	end
 
 	def look_down
+
 		p "looking down"
 		@current_direction = :south
 
 		@jumping ? change_anim(:falling) : change_anim(:looking_down)
 
 		self.velocity_y += 0.5
+		@on_platform = false
 	end
 
 
 	#FIRING METHODS
 	def start_cooldown
 		@cooling_down = true
-    	after(1000) { @cooling_down = false }
+    	after(600) { @cooling_down = false }
 	end
 
 	def calculate_firing_direction

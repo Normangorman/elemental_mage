@@ -2,30 +2,31 @@ class Projectile < GameObject
 	trait :velocity
 	def initialize(options = {})
 		super
+		self.zorder = ZOrder::PROJECTILE
 	end
 
 	def release(direction)
 		case direction
 		when :north
-			@velocity_y = -10
+			@velocity_y = -15
 		when :north_east
-			@velocity_x = 10
-			@velocity_y = -10
+			@velocity_x = 15
+			@velocity_y = -15
 		when :east
-			@velocity_x = 10
+			@velocity_x = 15
 		when :south_east
-			@velocity_x = 10
-			@velocity_y = 10
+			@velocity_x = 15
+			@velocity_y = 15
 		when :south
-			@velocity_y = 10
+			@velocity_y = 15
 		when :south_west
-			@velocity_x = -10
-			@velocity_y = 10
+			@velocity_x = -15
+			@velocity_y = 15
 		when :west
-			@velocity_x = -10
+			@velocity_x = -15
 		when :north_west
-			@velocity_x = -10
-			@velocity_y = -10
+			@velocity_x = -15
+			@velocity_y = -15
 		else raise StandardError, "Invalid firing direction."
 		end
 		@released = true
@@ -34,6 +35,8 @@ class Projectile < GameObject
 	def update
 		@image = @animation.next
 		@angle += 2
+
+		self.destroy if self.x < 0 || self.x > $window.width || self.y > $window.height || self.y < - 100
 	end
 end
 
