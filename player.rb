@@ -4,22 +4,12 @@ class Player < GameObject
 	trait :collision_detection
 	trait :bounding_box, debug: true
 
-	attr_reader :on_platform
-
 	def initialize(options={})
 		super
-		self.input = {
-			[:down_arrow, :holding_down_arrow] 	=> :look_down,
-			[:up, :holding_up] 					=> :jump,
-			[:right, :holding_right] 			=> :move_right,
-			[:left, :holding_left] 				=> :move_left,
-			
-			holding_q: :grow_fire,
-			holding_w: :grow_water,
-			holding_e: :grow_air,
-		}
-
-		add_anim = Proc.new {|name| Animation.new(file: "animations/player1/" + name, :delay => 100) }
+		self.input = options[:controls]
+		@name = options[:name]
+		
+		add_anim = Proc.new {|file| Animation.new(file: "animations/#{@name}/" + file, :delay => 100) }
 		@animations = {
 			idle: 			add_anim.call("idle_80x80.png"),
 			walk_left: 		add_anim.call("walk_left_80x80.png"),
@@ -28,24 +18,24 @@ class Player < GameObject
 			looking_down: 	add_anim.call("looking_down_80x80.png"),
 			jumping: 		add_anim.call("jumping_80x80.png"),
 		}
-		self.zorder = ZOrder::PLAYER
+
+		#This is set so that methods can refer to specific keys via the method that those keys carry out.
+		@controls = options[:controls].invert
 
 		#Default to idle animation
 		change_anim(:idle)
-
+		self.zorder = ZOrder::PLAYER
 		#Used to prevent jumping again until landed
-		@jumping = false
-
 		@current_direction = :north
 	end
 
 	def change_anim(name)
 		@animation = @animations[name]
-		@image = @animation.next
+		@image = @animation.next #This is called by firing and movement methods in order to change the animation.
 	end
 
+	#UPDATION METHODS
 	def update
-		
 		#Physics
 		self.velocity_x *= 0.8
 
@@ -54,18 +44,11 @@ class Player < GameObject
 			@jumping = false
 		end
 
+		#Level borders
 		if self.x < self.image.width/2
 			self.x = self.image.width/2
 		elsif self.x > $window.width - self.image.width/2
 			self.x = $window.width - self.image.width/2
-		end
-
-		#Animation control
-		#THIS LINE MIGHT CAUSE BUGS!!!
-		@animation = @animations[:idle] unless (self.holding_any?(:right, :left, :up, :down) || @jumping == true)
-		@image = @animation.next
-		if @jumping and self.velocity_y > 0
-			@animation = @animations[:falling]
 		end
 
 		#Ball control ;)
@@ -82,7 +65,26 @@ class Player < GameObject
 			end
 		end
 
+		handle_held_keys
+		handle_animations
 		handle_collisions
+	end
+
+	def handle_held_keys
+		look_down  if holding?(@controls[:look_down])
+		jump       if holding?(@controls[:jump])
+		move_right if holding?(@controls[:move_right])
+		move_left  if holding?(@controls[:move_left])
+	end
+
+	def handle_animations
+		@animation = @animations[:idle] unless holding_any?(*@controls.values)
+		
+		if @jumping and self.velocity_y > 0
+			@animation = @animations[:falling]
+		end
+
+		@image = @animation.next
 	end
 
 	def handle_collisions
@@ -115,7 +117,6 @@ class Player < GameObject
 			end
 			
 		end
-
 	end
 
 	#MOVEMENT METHODS
@@ -145,8 +146,6 @@ class Player < GameObject
 	end
 
 	def look_down
-
-		p "looking down"
 		@current_direction = :south
 
 		@jumping ? change_anim(:falling) : change_anim(:looking_down)
@@ -165,33 +164,33 @@ class Player < GameObject
 	def calculate_firing_direction
 		case @current_direction
 		when :east
-			if holding?(:up)
+			if holding?(@controls[:jump])
 				:north_east
-			elsif holding?(:down)
+			elsif holding?(@controls[:look_down])
 				:south_east
 			else 
 				:east
 			end
 		when :west
-			if holding?(:up)
+			if holding?(@controls[:jump])
 				:north_west
-			elsif holding?(:down)
+			elsif holding?(@controls[:look_down])
 				:south_west
 			else
 				:west
 			end
 		when :north
-			if holding?(:right)
+			if holding?(@controls[:move_right])
 				:north_east
-			elsif holding?(:left)
+			elsif holding?(@controls[:move_left])
 				:north_west
 			else
 				:north
 			end
 		when :south
-			if holding?(:right)
+			if holding?(@controls[:move_right])
 				:south_east
-			elsif holding?(:left)
+			elsif holding?(@controls[:move_left])
 				:south_west
 			else
 				:south
@@ -199,26 +198,22 @@ class Player < GameObject
 		end
 	end
 
-	def release_projectile
-
-	end
-
 	def grow_fire
 		#remember to handle cooldowns
 		return if @projectile || @cooling_down
-		@grow_button = :q
+		@grow_button = @controls[:grow_fire]
 		@projectile = Fireball.create(x: self.x, y: self.y)
 	end
 
 	def grow_water
 		return if @projectile || @cooling_down
-		@grow_button = :w
+		@grow_button = @controls[:grow_water]
 		@projectile = Waterball.create(x: self.x, y: self.y)
 	end
 
 	def grow_air
 		return if @projectile || @cooling_down
-		@grow_button = :e
+		@grow_button = @controls[:grow_air]
 		@projectile = Airball.create(x: self.x, y: self.y)
 	end
 end
