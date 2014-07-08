@@ -7,7 +7,10 @@ class Cloud < GameObject
 						Image["images/cloud2.png"], 
 						Image["images/cloud3.png"], ]
 
-		self.image = cloud_images.sample
+		@image = cloud_images.sample
+
+		self.x = - @image.width
+		self.y = 250 * rand
 		self.velocity_x = rand
 		self.zorder = ZOrder::CLOUD
 	end

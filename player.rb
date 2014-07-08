@@ -44,9 +44,18 @@ class Player < GameObject
 		p self.center_y
 	end
 
+	#called by movement methods in order to change the current animation.
 	def change_anim(name)
 		@animation = @animations[name]
 		@image = @animation.next #This is called by firing and movement methods in order to change the animation.
+	end
+
+	#called by projectiles when they collide with the player
+	def hurt(amount)
+		@life -= amount
+		#lose game if life <= 0
+		@hurt_sound ||= Sample["sounds/hurt.ogg"]
+		@hurt_sound.play(volume = Settings.effect_volume * amount, speed = 1, looping = false)
 	end
 
 	#UPDATION METHODS
@@ -67,6 +76,15 @@ class Player < GameObject
 		end
 		
 		@projectile.charge if @projectile
+
+		if @power_shot
+			@power_up_sound ||= Sample["sounds/power_up.ogg"]
+
+			unless @power_icon
+				@power_icon = Power_icon.create(owner: self) 
+				@power_up_sound.play(volume = Settings.effect_volume, speed = 1, looping = false)
+			end
+		end
 
 		handle_held_keys
 		handle_animations
@@ -208,6 +226,9 @@ class Player < GameObject
 			p "shot a power shot"
 			klass.create(owner: self, power: 100).release(calculate_firing_direction)
 			@power_shot = false
+			@power_icon.remove
+			@power_icon = nil
+
 			start_cooldown
 		elsif @cooling_down
 			p "cooling down so didnt create a projectile"

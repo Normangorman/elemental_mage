@@ -16,6 +16,8 @@ class Projectile < GameObject
 		setup
 		@image = @animation.first
 		self.size = [@image.width, @image.height]
+		#Release sound is the same for all sublasses.
+		@release_sound = Sample["sounds/projectile_release.ogg"]
 	end
 
 	def charge
@@ -50,6 +52,8 @@ class Projectile < GameObject
 		else raise StandardError, "Invalid firing direction."
 		end
 		@released = true
+
+		@release_sound.play(volume = @power * 0.01, speed = 1, looping = false)
 	end
 
 	def update
@@ -67,18 +71,17 @@ class Projectile < GameObject
 		self.each_bounding_box_collision(Player) do |me, player|
 		    unless player == @owner
 		    	#The amount of damage is done to the player is proportional the power of the projectile.
-		        player.life -= @power / 25 
+		        player.hurt(@power / 25) 
 		        self.destroy
 		    end
 	    end
-	    
+
 	end
 end
 
 #Fire beats air, air beats water, water beats fire
 
 class Fireball < Projectile
-
 	def setup
 		@animation = Animation.new(file: "animations/projectiles/fireball_16x16.png", :delay => 100)
 		@fireball_particle = Image["images/fireball_particle.bmp"]
@@ -110,7 +113,6 @@ class Fireball < Projectile
 		    	other.destroy
 			end
 		end
-
 	end
 end
 

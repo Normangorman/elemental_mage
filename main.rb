@@ -51,6 +51,14 @@ module Controls
 	def self.player2; @@player2 end
 end
 
+module Settings
+	@@effect_volume = 0.5
+	@@music_volume = 1
+
+	def self.effect_volume; @@effect_volume end
+	def self.music_volume; @@music_volume end
+end
+
 class Game < Chingu::Window 
   def initialize
     super(1280, 800)    
@@ -74,11 +82,15 @@ class Play < GameState
 
 		@bridge_and_sky = Image["images/bridge_and_sky.png"]
 		@smoke_particle = Image["images/smoke_particle.bmp"]
+
+		@background_music = Gosu::Song.new($window, "media/sounds/wizards_keep.ogg")
+		@background_music.play(looping = true)
+		@background_music.volume = Settings.music_volume
 	end
 
 	def update
 		super
-		$window.caption = Player.all.first.velocity_y
+		$window.caption = game_objects.size
 		spawn_scenery_objects
     	game_objects.destroy_if { |object| object.alpha == 0 }
 	end
@@ -89,10 +101,9 @@ class Play < GameState
 	end
 
 	def spawn_scenery_objects
-		if rand(400) == 1
-			#To prevent half a cloud suddenly appearing on the screen clouds are initiated with negative x.
-			#Longest cloud is 5 tiles, 5*32 = 160
-			cloud = Cloud.create(x: -160, y: 250 * rand)
+		#Total number of clouds on screen at one time is limited to 5.
+		if rand(400) == 1 and Cloud.size <= 5
+			Cloud.create
 		end
 
 		#Spawns smoke from the house in the background image
@@ -107,6 +118,7 @@ class Play < GameState
 				                        )
 		end
 
+		#Simulates the effect of the wind on the smoke particles.
 		if @smoke
 			@smoke.each { |particle| particle.y -= 0.5; particle.x += rand }
 		end

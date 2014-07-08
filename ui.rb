@@ -54,3 +54,33 @@ class Heart < GameObject
 		@image = @images[amount]
 	end
 end
+
+class Power_icon < GameObject
+	def initialize(options={})
+		super
+		@owner = options[:owner]
+		self.x = @owner.x
+		self.y = @owner.y - 80
+		self.zorder = ZOrder::PLAYER
+
+		@animation = Animation.new(file: "animations/elemental_orbit.png", :delay => 50)
+	end
+
+	def update
+		#follows the player
+		unless @dying
+			self.x = @owner.x
+			self.y = @owner.y - 80
+		end
+
+		self.alpha -= 8 if @dying
+
+		@image = @animation.next
+		@angle += 3
+		super
+	end
+
+	def remove
+		@dying = true
+	end
+end
