@@ -22,7 +22,7 @@ end
 
 class Platform < GameObject
 	trait :collision_detection
-	trait :bounding_box, debug: true
+	trait :bounding_box
 
 	def initialize(options = {})
 		super

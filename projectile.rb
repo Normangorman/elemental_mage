@@ -1,8 +1,5 @@
 class Projectile < GameObject
-	trait :velocity
-	trait :collision_detection
-	trait :bounding_box, debug: true, scale: [1, 1]
-
+	traits :velocity, :collision_detection, :bounding_box
 	attr_reader :owner, :power
 
 	def initialize(options = {})
@@ -25,6 +22,8 @@ class Projectile < GameObject
 		#Follow the player
 		self.x = @owner.x
 		self.y = @owner.y
+
+		Spark.create(x: self.x, y: self.y, player: @owner) if rand(10) == 1
 	end
 
 	def release(direction)
@@ -71,11 +70,11 @@ class Projectile < GameObject
 		self.each_bounding_box_collision(Player) do |me, player|
 		    unless player == @owner
 		    	#The amount of damage is done to the player is proportional the power of the projectile.
-		        player.hurt(@power / 25) 
+		        player.hurt(@power / 25, self)
+		        explode 
 		        self.destroy
 		    end
 	    end
-
 	end
 end
 
@@ -84,7 +83,6 @@ end
 class Fireball < Projectile
 	def setup
 		@animation = Animation.new(file: "animations/projectiles/fireball_16x16.png", :delay => 100)
-		@fireball_particle = Image["images/fireball_particle.bmp"]
 	end
 
 	def update
@@ -92,14 +90,7 @@ class Fireball < Projectile
 
 		if @released
 			#The number of times represents the density of the particle cloud created
-			3.times do 
-				Chingu::Particle.create( :x => self.x + rand(-5..5), 
-		                          :y => self.y + rand(-5..5), 
-		                          :image => @fireball_particle,
-		                          :fade_rate => -10, 
-		                          :mode => :default
-		                        )
-			end
+			3.times { Fire_particle.create( x: self.x + rand(-5..5), y: self.y + rand(-5..5) ) }
 
 			self.each_bounding_box_collision(Waterball) do |me, other|
 		    	other.owner.power_shot = true
@@ -114,26 +105,26 @@ class Fireball < Projectile
 			end
 		end
 	end
+
+	def explode
+        (50 * @power * 0.01).floor.times { 
+        	Fire_particle.create( x: self.x + rand(-5..5), 
+			y: self.y + rand(-5..5), 
+			velocity_x: rand(-5..5),
+			velocity_y: rand(-5..5) ) 
+        }
+	end
 end
 
 class Waterball < Projectile
 	def setup
 		@animation = Animation.new(file: "animations/projectiles/waterball_16x16.png", :delay => 100)
-		@waterball_particle = Image["images/waterball_particle.bmp"]
 	end
 
 	def update
 		super
-
 		if @released
-			10.times do 
-				Chingu::Particle.create( :x => self.x + rand(-5..5), 
-		                          :y => self.y + rand(-5..5), 
-		                          :image => @waterball_particle,
-		                          :fade_rate => -15, 
-		                          :mode => :default
-		                        )
-			end
+			10.times { Water_particle.create( x: self.x + rand(-5..5), y: self.y + rand(-5..5) ) }
 
 			self.each_bounding_box_collision(Airball) do |me, other|
 		    	other.owner.power_shot = true
@@ -141,28 +132,34 @@ class Waterball < Projectile
 		    	other.destroy
 			end
 		end
+	end
 
+	def explode
+        (50 * @power * 0.01).floor.times { 
+        	Water_particle.create( x: self.x + rand(-5..5), 
+			y: self.y + rand(-5..5), 
+			velocity_x: rand(-5..5),
+			velocity_y: rand(-5..5) ) 
+        }
 	end
 end
 
 class Airball < Projectile
 	def setup
 		@animation = Animation.new(file: "animations/projectiles/airball_16x16.png", :delay => 100)
-		@airball_particle = Image["images/airball_particle.png"]
 	end
 
 	def update
 		super
+		1.times { Air_particle.create( x: self.x + rand(-5..5), y: self.y + rand(-5..5) ) } if @released
+	end
 
-		if @released
-			1.times do 
-				Chingu::Particle.create( :x => self.x + rand(-5..5), 
-		                          :y => self.y + rand(-5..5), 
-		                          :image => @airball_particle,
-		                          :fade_rate => -5,
-		                          :mode => :default
-		                        )
-			end
-		end
+	def explode
+        (50 * @power * 0.01).floor.times { 
+        	Air_particle.create( x: self.x + rand(-5..5), 
+			y: self.y + rand(-5..5), 
+			velocity_x: rand(-5..5),
+			velocity_y: rand(-5..5) ) 
+        }
 	end
 end

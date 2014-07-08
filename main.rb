@@ -1,7 +1,6 @@
 require 'rubygems' rescue nil
 $LOAD_PATH.unshift File.join(File.expand_path(__FILE__), "..", "..", "lib")
 require 'chingu'
-require 'texplay'
 
 include Gosu
 include Chingu
@@ -10,6 +9,7 @@ require_relative 'ui'
 require_relative 'player'
 require_relative 'projectile'
 require_relative 'scenery'
+require_relative 'particles'
 
 
 module ZOrder
@@ -18,8 +18,9 @@ module ZOrder
 	CLOUD = 2
 	PLATFORM = 3
 	PLAYER = 4
-	PROJECTILE = 5
-	UI = 6
+	SPARK = 5
+	PROJECTILE = 6
+	UI = 7
 end
 
 module Controls
@@ -81,7 +82,6 @@ class Play < GameState
 		Platform.create(x: 1080, y: $ground_y - 150)
 
 		@bridge_and_sky = Image["images/bridge_and_sky.png"]
-		@smoke_particle = Image["images/smoke_particle.bmp"]
 
 		@background_music = Gosu::Song.new($window, "media/sounds/wizards_keep.ogg")
 		@background_music.play(looping = true)
@@ -107,20 +107,8 @@ class Play < GameState
 		end
 
 		#Spawns smoke from the house in the background image
-		if rand(100) == 1
-			@smoke ||= []
-			@smoke << Chingu::Particle.create( :x => 730, 
-				                          :y => 413, 
-				                          :zorder => ZOrder::SMOKE,
-				                          :image => @smoke_particle,
-				                          :fade_rate => -1, 
-				                          :mode => :default
-				                        )
-		end
-
-		#Simulates the effect of the wind on the smoke particles.
-		if @smoke
-			@smoke.each { |particle| particle.y -= 0.5; particle.x += rand }
+		if rand(200) == 1
+			Smoke.create(x: 730, y: 413)
 		end
 	end
 end

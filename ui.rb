@@ -56,6 +56,7 @@ class Heart < GameObject
 end
 
 class Power_icon < GameObject
+	trait :effect
 	def initialize(options={})
 		super
 		@owner = options[:owner]
@@ -64,6 +65,7 @@ class Power_icon < GameObject
 		self.zorder = ZOrder::PLAYER
 
 		@animation = Animation.new(file: "animations/elemental_orbit.png", :delay => 50)
+		@rotation_rate = 2
 	end
 
 	def update
@@ -73,14 +75,12 @@ class Power_icon < GameObject
 			self.y = @owner.y - 80
 		end
 
-		self.alpha -= 8 if @dying
-
 		@image = @animation.next
-		@angle += 3
 		super
 	end
 
 	def remove
 		@dying = true
+		@fade_rate = -8
 	end
 end
