@@ -4,9 +4,15 @@ class Player < GameObject
 	trait :collision_detection
 	trait :bounding_box, debug: true
 
+	attr_accessor :life, :power_shot
+
 	def initialize(options={})
 		super
 		self.input = options[:controls]
+		#This is set so that methods can refer to specific keys via the method that those keys carry out.
+		@controls = options[:controls].invert
+
+		#Used to distinguish player1 from player2
 		@name = options[:name]
 		
 		add_anim = Proc.new {|file| Animation.new(file: "animations/#{@name}/" + file, :delay => 100) }
@@ -19,14 +25,23 @@ class Player < GameObject
 			jumping: 		add_anim.call("jumping_80x80.png"),
 		}
 
-		#This is set so that methods can refer to specific keys via the method that those keys carry out.
-		@controls = options[:controls].invert
-
 		#Default to idle animation
 		change_anim(:idle)
 		self.zorder = ZOrder::PLAYER
 		#Used to prevent jumping again until landed
 		@current_direction = :north
+
+		#Make relevant UI
+		@life = 20
+		case @name
+		when "player1"
+			@lifebar = Lifebar.create(x: 30, y:30, owner: self)
+		when "player2"
+			@lifebar = Lifebar.create(x: $window.width - 5*35, y:30, owner: self)
+		end
+
+		p self.center_x
+		p self.center_y
 	end
 
 	def change_anim(name)
@@ -50,20 +65,8 @@ class Player < GameObject
 		elsif self.x > $window.width - self.image.width/2
 			self.x = $window.width - self.image.width/2
 		end
-
-		#Ball control ;)
-		if @projectile
-			if holding?(@grow_button)
-				@projectile.x = self.x
-				@projectile.y = self.y
-				@projectile.factor_x *= 1.05 unless @projectile.factor_x >= 3
-				@projectile.factor_y *= 1.05 unless @projectile.factor_y >= 3
-			else
-				@projectile.release(calculate_firing_direction)
-				@projectile = nil
-				start_cooldown
-			end
-		end
+		
+		@projectile.charge if @projectile
 
 		handle_held_keys
 		handle_animations
@@ -117,6 +120,8 @@ class Player < GameObject
 			end
 			
 		end
+
+		#projectile collisions
 	end
 
 	#MOVEMENT METHODS
@@ -198,22 +203,40 @@ class Player < GameObject
 		end
 	end
 
+	def handle_projectile(klass)
+		if @power_shot
+			p "shot a power shot"
+			klass.create(owner: self, power: 100).release(calculate_firing_direction)
+			@power_shot = false
+			start_cooldown
+		elsif @cooling_down
+			p "cooling down so didnt create a projectile"
+			return
+		elsif @projectile
+			p "fired the current projectile"
+			@projectile.release(calculate_firing_direction)
+			@projectile = nil
+			start_cooldown
+		else
+			p "made a projectile"
+			@projectile = klass.create(owner: self)
+			p "size: #{@projectile.size}"
+		end
+
+	end
+
 	def grow_fire
-		#remember to handle cooldowns
-		return if @projectile || @cooling_down
-		@grow_button = @controls[:grow_fire]
-		@projectile = Fireball.create(x: self.x, y: self.y)
+		p "handling fireball"
+		handle_projectile(Fireball)
 	end
 
 	def grow_water
-		return if @projectile || @cooling_down
-		@grow_button = @controls[:grow_water]
-		@projectile = Waterball.create(x: self.x, y: self.y)
+		p "handling waterball"
+		handle_projectile(Waterball)
 	end
 
 	def grow_air
-		return if @projectile || @cooling_down
-		@grow_button = @controls[:grow_air]
-		@projectile = Airball.create(x: self.x, y: self.y)
+		p "handling airball"
+		handle_projectile(Airball)
 	end
 end

@@ -1,8 +1,28 @@
 class Projectile < GameObject
 	trait :velocity
+	trait :collision_detection
+	trait :bounding_box, debug: true, scale: [1, 1]
+
+	attr_reader :owner, :power
+
 	def initialize(options = {})
 		super
 		self.zorder = ZOrder::PROJECTILE
+		@power = options[:power] || 25
+		@owner = options[:owner]
+		self.x = @owner.x
+		self.y = @owner.y
+		#The size parameter is manually defined here, otherwise self.size would return [nil, nil], resulting in bugs in Chingu's collisions handler.
+		setup
+		@image = @animation.first
+		self.size = [@image.width, @image.height]
+	end
+
+	def charge
+		@power += 1 unless @power == 100
+		#Follow the player
+		self.x = @owner.x
+		self.y = @owner.y
 	end
 
 	def release(direction)
@@ -35,21 +55,40 @@ class Projectile < GameObject
 	def update
 		@image = @animation.next
 		@angle += 2
+		#Enlarges the projectile proportionally to its power.
+		self.factor_x = 3 * @power * 0.01
+		self.factor_y = 3 * @power * 0.01
 
-		self.destroy if self.x < 0 || self.x > $window.width || self.y > $window.height || self.y < - 100
+	    #Because the player can jump to a height that is just above the screen,
+		# an upward-moving projectile is only destroyed if it moves 200 pixels above the screen.
+		self.destroy if self.x < 0 || self.x > $window.width || self.y > $window.height || self.y < - 200
+
+		# Only damage the enemy player, not the projectile's owner.
+		self.each_bounding_box_collision(Player) do |me, player|
+		    unless player == @owner
+		    	#The amount of damage is done to the player is proportional the power of the projectile.
+		        player.life -= @power / 25 
+		        self.destroy
+		    end
+	    end
+	    
 	end
 end
 
-
+#Fire beats air, air beats water, water beats fire
 
 class Fireball < Projectile
+
 	def setup
 		@animation = Animation.new(file: "animations/projectiles/fireball_16x16.png", :delay => 100)
 		@fireball_particle = Image["images/fireball_particle.bmp"]
 	end
 
 	def update
+		super
+
 		if @released
+			#The number of times represents the density of the particle cloud created
 			3.times do 
 				Chingu::Particle.create( :x => self.x + rand(-5..5), 
 		                          :y => self.y + rand(-5..5), 
@@ -58,8 +97,20 @@ class Fireball < Projectile
 		                          :mode => :default
 		                        )
 			end
+
+			self.each_bounding_box_collision(Waterball) do |me, other|
+		    	other.owner.power_shot = true
+		    	self.destroy
+		    	other.destroy
+			end
+
+			self.each_bounding_box_collision(Airball) do |me, other|
+				@owner.power_shot = true
+		    	self.destroy
+		    	other.destroy
+			end
 		end
-		super
+
 	end
 end
 
@@ -70,6 +121,8 @@ class Waterball < Projectile
 	end
 
 	def update
+		super
+
 		if @released
 			10.times do 
 				Chingu::Particle.create( :x => self.x + rand(-5..5), 
@@ -79,8 +132,14 @@ class Waterball < Projectile
 		                          :mode => :default
 		                        )
 			end
+
+			self.each_bounding_box_collision(Airball) do |me, other|
+		    	other.owner.power_shot = true
+		    	self.destroy
+		    	other.destroy
+			end
 		end
-		super
+
 	end
 end
 
@@ -91,6 +150,8 @@ class Airball < Projectile
 	end
 
 	def update
+		super
+
 		if @released
 			1.times do 
 				Chingu::Particle.create( :x => self.x + rand(-5..5), 
@@ -101,6 +162,5 @@ class Airball < Projectile
 		                        )
 			end
 		end
-		super
 	end
 end

@@ -6,16 +6,20 @@ require 'texplay'
 include Gosu
 include Chingu
 
+require_relative 'ui'
 require_relative 'player'
 require_relative 'projectile'
 require_relative 'scenery'
 
+
 module ZOrder
-	BACKGROUND = -1
-	CLOUD = 0
-	PLATFORM = 1
-	PLAYER = 2
-	PROJECTILE = 3
+	BACKGROUND = 0
+	SMOKE = 1
+	CLOUD = 2
+	PLATFORM = 3
+	PLAYER = 4
+	PROJECTILE = 5
+	UI = 6
 end
 
 module Controls
@@ -60,6 +64,7 @@ class Play < GameState
 		# - half the image height
 		$ground_y = $window.height - 6 * 32 - 4
 
+		#Name parameter must match the file name in which the player's animations are stored.
 		Player.create(x: 100, y: $ground_y, controls: Controls.player1, name: "player1" )
 		Player.create(x: 1180, y: $ground_y, controls: Controls.player2, name: "player2" )
 
@@ -68,6 +73,7 @@ class Play < GameState
 		Platform.create(x: 1080, y: $ground_y - 150)
 
 		@bridge_and_sky = Image["images/bridge_and_sky.png"]
+		@smoke_particle = Image["images/smoke_particle.bmp"]
 	end
 
 	def update
@@ -83,8 +89,6 @@ class Play < GameState
 	end
 
 	def spawn_scenery_objects
-		@smoke_particle = Image["images/smoke_particle.bmp"]
-
 		if rand(400) == 1
 			#To prevent half a cloud suddenly appearing on the screen clouds are initiated with negative x.
 			#Longest cloud is 5 tiles, 5*32 = 160
@@ -92,18 +96,19 @@ class Play < GameState
 		end
 
 		#Spawns smoke from the house in the background image
-		if rand(5) == 1
+		if rand(100) == 1
 			@smoke ||= []
-			@smoke << Chingu::Particle.create( :x => 720, 
+			@smoke << Chingu::Particle.create( :x => 730, 
 				                          :y => 413, 
+				                          :zorder => ZOrder::SMOKE,
 				                          :image => @smoke_particle,
-				                          :fade_rate => -2, 
+				                          :fade_rate => -1, 
 				                          :mode => :default
 				                        )
 		end
 
 		if @smoke
-			@smoke.each { |particle| particle.y -= 3; particle.x += rand }
+			@smoke.each { |particle| particle.y -= 0.5; particle.x += rand }
 		end
 	end
 end
