@@ -7,8 +7,8 @@ class Projectile < GameObject
 		self.zorder = ZOrder::PROJECTILE
 		@power = options[:power] || 25
 		@owner = options[:owner]
-		self.x = @owner.x
-		self.y = @owner.y
+		self.x = options[:x] || @owner.x
+		self.y = options[:y] || @owner.y
 		#The size parameter is manually defined here, otherwise self.size would return [nil, nil], resulting in bugs in Chingu's collisions handler.
 		setup
 		@image = @animation.first

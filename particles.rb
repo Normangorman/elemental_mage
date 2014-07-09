@@ -14,7 +14,7 @@ end
 
 class Spark < Particle
 	def setup
-		@image = Image["images/spark.png"]
+		@image = Image["images/particles/spark.png"]
 		@fade_rate = -7
 
 		self.velocity_y = -2
@@ -26,7 +26,7 @@ end
 
 class Smoke < Particle
 	def setup
-		@image = Image["images/smoke_particle.bmp"]
+		@image = Image["images/particles/smoke_particle.bmp"]
 		@fade_rate = -2
 
 		self.velocity_y = -1
@@ -37,7 +37,7 @@ end
 
 class Air_particle < Particle
 	def setup
-		@image = Image["images/airball_particle.png"]
+		@image = Image["images/particles/airball_particle.png"]
 		@fade_rate = -5
 		self.zorder = ZOrder::SPARK
 	end
@@ -45,7 +45,7 @@ end
 
 class Water_particle < Particle
 	def setup
-		@image = Image["images/waterball_particle.bmp"]
+		@image = Image["images/particles/waterball_particle.bmp"]
 		@fade_rate = -15
 		self.zorder = ZOrder::SPARK
 	end
@@ -53,7 +53,7 @@ end
 
 class Fire_particle < Particle
 	def setup
-		@image = Image["images/fireball_particle.bmp"]
+		@image = Image["images/particles/fireball_particle.bmp"]
 		@fade_rate = -10
 		self.zorder = ZOrder::SPARK
 	end

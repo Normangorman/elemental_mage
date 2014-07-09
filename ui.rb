@@ -84,3 +84,4 @@ class Power_icon < GameObject
 		@fade_rate = -8
 	end
 end
+

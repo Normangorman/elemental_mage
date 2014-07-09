@@ -10,7 +10,7 @@ require_relative 'player'
 require_relative 'projectile'
 require_relative 'scenery'
 require_relative 'particles'
-
+require_relative 'gamestates'
 
 module ZOrder
 	BACKGROUND = 0
@@ -63,54 +63,12 @@ end
 class Game < Chingu::Window 
   def initialize
     super(1280, 800)    
-    push_game_state(Play)
+    push_game_state(MainMenu)
   end
-end
 
-class Play < GameState
-	def initialize
-		super
-		# - half the image height
-		$ground_y = $window.height - 6 * 32 - 4
-
-		#Name parameter must match the file name in which the player's animations are stored.
-		Player.create(x: 100, y: $ground_y, controls: Controls.player1, name: "player1" )
-		Player.create(x: 1180, y: $ground_y, controls: Controls.player2, name: "player2" )
-
-		Platform.create(x: 200, y: $ground_y - 150)
-		Platform.create(x: 640, y: $ground_y - 300)
-		Platform.create(x: 1080, y: $ground_y - 150)
-
-		@bridge_and_sky = Image["images/bridge_and_sky.png"]
-
-		@background_music = Gosu::Song.new($window, "media/sounds/wizards_keep.ogg")
-		@background_music.play(looping = true)
-		@background_music.volume = Settings.music_volume
-	end
-
-	def update
-		super
-		$window.caption = game_objects.size
-		spawn_scenery_objects
-    	game_objects.destroy_if { |object| object.alpha == 0 }
-	end
-
-	def draw
-		super
-		@bridge_and_sky.draw 0, 0, ZOrder::BACKGROUND
-	end
-
-	def spawn_scenery_objects
-		#Total number of clouds on screen at one time is limited to 5.
-		if rand(400) == 1 and Cloud.size <= 5
-			Cloud.create
-		end
-
-		#Spawns smoke from the house in the background image
-		if rand(200) == 1
-			Smoke.create(x: 730, y: 413)
-		end
-	end
+  def needs_cursor?
+  	true
+  end
 end
 
 Game.new.show
