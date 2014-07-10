@@ -24,6 +24,18 @@ class Spark < Particle
 	end
 end
 
+class ExplosionSpark < Particle
+	def setup
+		@image = Image["images/particles/spark.png"]
+		@fade_rate = -3
+
+		self.velocity_y = rand(30) - 15
+		self.acceleration_y = 0.1
+		self.velocity_x = rand(30) - 15
+		self.zorder = ZOrder::SPARK
+	end
+end
+
 class Smoke < Particle
 	def setup
 		@image = Image["images/particles/smoke_particle.bmp"]

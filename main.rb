@@ -63,7 +63,9 @@ end
 class Game < Chingu::Window 
   def initialize
     super(1280, 800)    
-    push_game_state(MainMenu)
+    switch_game_state(MainMenu)
+    transitional_game_state(Chingu::GameStates::FadeTo, {:speed => 5, :debug => true})
+		
   end
 
   def needs_cursor?

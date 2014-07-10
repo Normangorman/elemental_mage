@@ -1,6 +1,7 @@
 class Player < GameObject
 	traits :velocity, :timer, :collision_detection, :bounding_box
-	attr_accessor :life, :power_shot
+	attr_accessor :life, :power_shot, :projectile
+	attr_reader :staff_x, :staff_y
 
 	def initialize(options={})
 		super
@@ -11,14 +12,24 @@ class Player < GameObject
 		#Used to distinguish player1 from player2
 		@name = options[:name]
 		
-		add_anim = Proc.new {|file| Animation.new(file: "animations/#{@name}/" + file, :delay => 100) }
+		add_anim = Proc.new {|file| Animation.new(file: "animations/#{@name}/" + file, :delay => 200) }
 		@animations = {
-			idle: 			add_anim.call("idle_80x80.png"),
-			walk_left: 		add_anim.call("walk_left_80x80.png"),
-			walk_right: 	add_anim.call("walk_right_80x80.png"),
-			falling: 		add_anim.call("falling_80x80.png"),
-			looking_down: 	add_anim.call("looking_down_80x80.png"),
-			jumping: 		add_anim.call("jumping_80x80.png"),
+			idle: 			add_anim.call("idle_96x96.png"),
+			walk_left: 		add_anim.call("walk_left_96x96.png"),
+			walk_right: 	add_anim.call("walk_right_96x96.png"),
+			falling: 		add_anim.call("falling_96x96.png"),
+			looking_down: 	add_anim.call("looking_down_96x96.png"),
+			jumping: 		add_anim.call("jumping_96x96.png"),
+			death:  		Animation.new(file: "animations/#{@name}/death_96x96.png", :delay => 80),
+		}
+		@staff_positions = {
+			idle: [34, -29],
+			walk_left: [-32, -31],
+			walk_right: [32, -31],
+			falling: [34, -29],
+			looking_down: [35, -29],
+			jumping: [34, -29],
+			death: [34, -29],
 		}
 
 		#Default to idle animation
@@ -35,14 +46,14 @@ class Player < GameObject
 		when "player2"
 			@lifebar = Lifebar.create(x: $window.width - 5*35, y:30, owner: self)
 		end
-
-		p self.center_x
-		p self.center_y
 	end
 
 	#called by movement methods in order to change the current animation.
 	def change_anim(name)
 		@animation = @animations[name]
+		@staff_x = self.x + @staff_positions[name].first
+		@staff_y = self.y + @staff_positions[name].last
+
 		@image = @animation.next #This is called by firing and movement methods in order to change the animation.
 	end
 
@@ -89,6 +100,32 @@ class Player < GameObject
 		handle_held_keys
 		handle_animations
 		handle_collisions
+
+		@staff_x += self.x - self.previous_x
+		@staff_y += self.y - self.previous_y
+
+		#Handles losing the game
+		
+		lose_game if @life <= 0 and @game_over != true
+		
+		if @game_over and @image == @animation.last
+			#Explode the staff's crystal.
+			100.times { ExplosionSpark.create(x: @staff_x, y: @staff_y, player: self) }
+			self.pause!
+
+			$window.current_game_state.background_music.stop
+			Sample["sounds/victory.ogg"].play(volume = Settings.music_volume, speed = 1, looping = false)
+			GameOverText.create(@name)
+		end
+
+	end
+
+	def lose_game
+		@projectile.destroy if @projectile
+		@power_icon.remove if @power_icon
+		change_anim(:death)
+		self.input = nil
+		@game_over = true
 	end
 
 	def handle_held_keys
@@ -99,10 +136,10 @@ class Player < GameObject
 	end
 
 	def handle_animations
-		@animation = @animations[:idle] unless holding_any?(*@controls.values)
+		change_anim(:idle) unless holding_any?(*@controls.values) || @game_over
 		
 		if @jumping and self.velocity_y > 0
-			@animation = @animations[:falling]
+			change_anim(:falling)
 		end
 
 		@image = @animation.next
@@ -222,42 +259,25 @@ class Player < GameObject
 	end
 
 	def handle_projectile(klass)
-		if @power_shot
-			p "shot a power shot"
-			klass.create(owner: self, power: 100).release(calculate_firing_direction)
-			@power_shot = false
-			@power_icon.remove
-			@power_icon = nil
-
-			start_cooldown
-		elsif @cooling_down
-			p "cooling down so didnt create a projectile"
-			return
-		elsif @projectile
-			p "fired the current projectile"
+		if @projectile
 			@projectile.release(calculate_firing_direction)
 			@projectile = nil
 			start_cooldown
+		elsif @power_shot
+			klass.create(owner: self, power: 100).release(calculate_firing_direction)
+			@power_shot = false
+			@power_icon.remove if @power_icon
+			@power_icon = nil
+			start_cooldown
+		elsif @cooling_down
+			return
 		else
-			p "made a projectile"
 			@projectile = klass.create(owner: self)
-			p "size: #{@projectile.size}"
 		end
 
 	end
 
-	def grow_fire
-		p "handling fireball"
-		handle_projectile(Fireball)
-	end
-
-	def grow_water
-		p "handling waterball"
-		handle_projectile(Waterball)
-	end
-
-	def grow_air
-		p "handling airball"
-		handle_projectile(Airball)
-	end
+	def grow_fire; 	handle_projectile(Fireball)  end
+	def grow_water; handle_projectile(Waterball) end
+	def grow_air; 	handle_projectile(Airball) 	 end
 end

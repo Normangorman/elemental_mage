@@ -1,14 +1,15 @@
 class Projectile < GameObject
 	traits :velocity, :collision_detection, :bounding_box
-	attr_reader :owner, :power
+	attr_reader :owner, :power, :released
 
 	def initialize(options = {})
 		super
 		self.zorder = ZOrder::PROJECTILE
 		@power = options[:power] || 25
 		@owner = options[:owner]
-		self.x = options[:x] || @owner.x
-		self.y = options[:y] || @owner.y
+
+		self.x = options[:x] || @owner.staff_x
+		self.y = options[:y] || @owner.staff_y
 		#The size parameter is manually defined here, otherwise self.size would return [nil, nil], resulting in bugs in Chingu's collisions handler.
 		setup
 		@image = @animation.first
@@ -20,8 +21,8 @@ class Projectile < GameObject
 	def charge
 		@power += 1 unless @power == 100
 		#Follow the player
-		self.x = @owner.x
-		self.y = @owner.y
+		self.x = @owner.staff_x
+		self.y = @owner.staff_y
 
 		Spark.create(x: self.x, y: self.y, player: @owner) if rand(10) == 1
 	end
@@ -64,11 +65,11 @@ class Projectile < GameObject
 
 	    #Because the player can jump to a height that is just above the screen,
 		# an upward-moving projectile is only destroyed if it moves 200 pixels above the screen.
-		self.destroy if self.x < 0 || self.x > $window.width || self.y > $window.height || self.y < - 200
+		self.destroy if self.x < -50 || self.x > $window.width + 50 || self.y > $window.height || self.y < - 200
 
 		# Only damage the enemy player, not the projectile's owner.
 		self.each_bounding_box_collision(Player) do |me, player|
-		    unless player == @owner
+		    if player != @owner and @released
 		    	#The amount of damage is done to the player is proportional the power of the projectile.
 		        player.hurt(@power / 25, self)
 		        explode 
@@ -93,15 +94,19 @@ class Fireball < Projectile
 			3.times { Fire_particle.create( x: self.x + rand(-5..5), y: self.y + rand(-5..5) ) }
 
 			self.each_bounding_box_collision(Waterball) do |me, other|
-		    	other.owner.power_shot = true
-		    	self.destroy
-		    	other.destroy
+				if other.released
+			    	other.owner.power_shot = true
+			    	self.destroy
+			    	other.destroy
+			    end
 			end
 
 			self.each_bounding_box_collision(Airball) do |me, other|
-				@owner.power_shot = true
-		    	self.destroy
-		    	other.destroy
+				if other.released
+					@owner.power_shot = true
+			    	self.destroy
+			    	other.destroy
+			    end
 			end
 		end
 	end
@@ -127,9 +132,13 @@ class Waterball < Projectile
 			10.times { Water_particle.create( x: self.x + rand(-5..5), y: self.y + rand(-5..5) ) }
 
 			self.each_bounding_box_collision(Airball) do |me, other|
-		    	other.owner.power_shot = true
-		    	self.destroy
-		    	other.destroy
+				if other.released
+			    	other.owner.power_shot = true
+			    	other.owner.projectile = nil
+
+			    	self.destroy
+			    	other.destroy
+			    end
 			end
 		end
 	end
@@ -155,11 +164,12 @@ class Airball < Projectile
 	end
 
 	def explode
-        (50 * @power * 0.01).floor.times { 
+        (50 * @power * 0.01).floor.times do 
         	Air_particle.create( x: self.x + rand(-5..5), 
-			y: self.y + rand(-5..5), 
+			y: self.y + rand(-5..
+				5), 
 			velocity_x: rand(-5..5),
 			velocity_y: rand(-5..5) ) 
-        }
+        end
 	end
 end

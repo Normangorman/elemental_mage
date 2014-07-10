@@ -1,4 +1,5 @@
 class Play < GameState
+	attr_accessor :background_music
 	def initialize
 		super
 		# - half the image height
@@ -44,27 +45,45 @@ class Play < GameState
 	end
 end
 
-class Instructions < GameState
-end
-
 class About < GameState
 end
 
 class MainMenu < GameState
 	def initialize
 		super
+		Fireball.destroy_all
+		Waterball.destroy_all
+		Airball.destroy_all
+		#Fixes a bug in which players were not properly destroyed if another game was started after the first game.
+		Player.destroy_all
+		$window.game_objects.destroy_all
+
 		MouseFollower.create
 		@background_image = Image["images/bridge_and_sky.png"]
 		@logo = Image["images/menu/logo.png"]
 
-		MenuButton.create("Start game", 	y: 330, action: Play )
-		Fireball.create(x: $window.width * 0.5 - 175, y: 350, power: 100, owner: self)
+		#http://stackoverflow.com/questions/152699/open-the-default-browser-in-ruby
+		def link_to(link)
+			lambda {
+			if RbConfig::CONFIG['host_os'] =~ /mswin|mingw|cygwin/
+			  system "start #{link}"
+			elsif RbConfig::CONFIG['host_os'] =~ /darwin/
+			  system "open #{link}"
+			elsif RbConfig::CONFIG['host_os'] =~ /linux|bsd/
+			  system "xdg-open #{link}"
+			end 
+			}
+		end
 
-		MenuButton.create("Instructions", 	y: 440, action: Instructions )
-		Waterball.create(x: $window.width * 0.5 - 175, y: 460, power: 100, owner: self)
+		MenuButton.create("Start game", 	y: 330, action: lambda {switch_game_state(Play)} )
+		Fireball.create(x: $window.width * 0.5 - 175, y: 360, power: 100, owner: self)
 
-		MenuButton.create("About" , 		y: 550, action: About )
-		Airball.create(x: $window.width * 0.5 - 175, y: 570, power: 100, owner: self)
+		MenuButton.create("Instructions", 	y: 440, action: link_to("www.google.com") )
+		Waterball.create(x: $window.width * 0.5 - 175, y: 470, power: 100, owner: self)
+
+		MenuButton.create("About", 			y: 550, action: link_to("www.google.com") )
+																	
+		Airball.create(x: $window.width * 0.5 - 175, y: 580, power: 100, owner: self)
 	end
 
 	def update
@@ -117,7 +136,9 @@ class MenuButton < Chingu::Text
 		each_bounding_box_collision(MouseFollower) { self.color = Gosu::Color::GREEN }
 	end
 
-	def trigger; $window.push_game_state(@action) end	
+	def trigger
+		@action.call
+	end
 end
 
 class MouseFollower < GameObject

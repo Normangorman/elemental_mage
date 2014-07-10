@@ -85,3 +85,40 @@ class Power_icon < GameObject
 	end
 end
 
+class GameOverText < Chingu::Text
+	traits :effect, :timer
+	def initialize(name)
+		@button = Image["images/menu/button.png"]
+		#Because the game_over method is called on the player who loses, the name parameter will be the name of the
+		# losing player. Hence the name of the winning player needs to be inferred.
+		# This is done by swapping the number at the end of the player's name: 1 becomes 2 and vice versa.
+		text = "Player " + {"1" => "2", "2" => "1"}[name.split("").last] + " wins!"
+
+		options = {
+			x: $window.width * 0.5 - 300,
+			y: $window.height * 0.5 - 100,
+			zorder: ZOrder::UI,
+			font: "media/SILKWONDER.ttf",
+
+			size: 100,
+			padding: 15,
+			background: @button,
+		}
+
+		super(text, options)
+		#Changing the x attribute only moves the text, not the background - allowing the text to be centered in the background -
+		# else it would not be centered properly.
+		self.x += 50
+		self.alpha = 0
+		self.background.alpha = 0
+
+		after(3000) do	
+			$window.switch_game_state(MainMenu)
+		end
+	end
+
+	def update
+		self.alpha += 5
+		self.background.alpha += 5
+	end
+end
