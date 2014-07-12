@@ -11,7 +11,7 @@ class Cloud < GameObject
 
 		self.x = - @image.width
 		self.y = 250 * rand
-		self.velocity_x = rand
+		self.velocity_x = rand + 0.15
 		self.zorder = ZOrder::CLOUD
 	end
 

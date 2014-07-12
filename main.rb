@@ -24,8 +24,6 @@ module ZOrder
 end
 
 module Controls
-	#The controls must be defined in the order: down jump right left fire water air.
-	#This is because they are referred to in the Player class using that order.
 	@@player1 = {
 		s:	:look_down,
 		w:	:jump,
@@ -43,9 +41,9 @@ module Controls
 		right: 	:move_right,
 		left:  	:move_left,
 		
-		numpad_1: :grow_fire,
-		numpad_2: :grow_water,
-		numpad_3: :grow_air,
+		b: :grow_fire,
+		n: :grow_water,
+		m: :grow_air,
 	}
 
 	def self.player1; @@player1 end
@@ -60,17 +58,22 @@ module Settings
 	def self.music_volume; @@music_volume end
 end
 
-class Game < Chingu::Window 
+class Game < Chingu::Window
   def initialize
     super(1280, 800)    
     switch_game_state(MainMenu)
     transitional_game_state(Chingu::GameStates::FadeTo, {:speed => 5, :debug => true})
-		
+	self.input = {:mouse_left => :caption}
   end
 
   def needs_cursor?
   	true
   end
+
+  def caption
+  	self.caption = game_objects.size
+  end
+
 end
 
 Game.new.show

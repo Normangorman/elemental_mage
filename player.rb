@@ -1,7 +1,7 @@
 class Player < GameObject
 	traits :velocity, :timer, :collision_detection, :bounding_box
-	attr_accessor :life, :power_shot, :projectile
-	attr_reader :staff_x, :staff_y
+	attr_accessor :life, :power_shot, :projectile, :invulnerable
+	attr_reader :staff_x, :staff_y, :name
 
 	def initialize(options={})
 		super
@@ -44,7 +44,7 @@ class Player < GameObject
 		when "player1"
 			@lifebar = Lifebar.create(x: 30, y:30, owner: self)
 		when "player2"
-			@lifebar = Lifebar.create(x: $window.width - 5*35, y:30, owner: self)
+			@lifebar = Lifebar.create(x: $window.width - 7*35, y:30, owner: self)
 		end
 	end
 
@@ -59,14 +59,16 @@ class Player < GameObject
 
 	#called by projectiles when they collide with the player
 	def hurt(amount, projectile)
-		@life -= amount
-		#lose game if life <= 0
-		@hurt_sound ||= Sample["sounds/hurt.ogg"]
-		@hurt_sound.play(volume = Settings.effect_volume * amount, speed = 1, looping = false)
+		unless @invulnerable
+			@life -= amount
+			#lose game if life <= 0
+			@hurt_sound ||= Sample["sounds/hurt.ogg"]
+			@hurt_sound.play(volume = Settings.effect_volume * amount, speed = 1, looping = false)
 
-		#Knockback based on projectile power
-		self.velocity_x += projectile.velocity_x * 0.25 * amount
-		self.velocity_y += projectile.velocity_y * 0.25 * amount
+			#Knockback based on projectile power
+			self.velocity_x += projectile.velocity_x * 0.25 * amount
+			self.velocity_y += projectile.velocity_y * 0.25 * amount
+		end
 	end
 
 	#UPDATION METHODS
@@ -115,7 +117,7 @@ class Player < GameObject
 
 			$window.current_game_state.background_music.stop
 			Sample["sounds/victory.ogg"].play(volume = Settings.music_volume, speed = 1, looping = false)
-			GameOverText.create(@name)
+			GameOverText.create(name: @name)
 		end
 
 	end
@@ -126,6 +128,13 @@ class Player < GameObject
 		change_anim(:death)
 		self.input = nil
 		@game_over = true
+
+		#makes the other player invulnerable
+		Player.each {|p| p.invulnerable = true unless p.name == @name }
+	end
+
+	def win_game
+		@invulnerable = true
 	end
 
 	def handle_held_keys

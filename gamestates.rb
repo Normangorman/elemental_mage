@@ -1,6 +1,14 @@
 class Play < GameState
 	attr_accessor :background_music
 	def initialize
+		#Putting the destruction methods in this position was the only way to fix the bug in which objects from a previous game
+		# would persist in future games - creating invisible, invulnerable but projectile-collidable players.
+		Fireball.destroy_all
+		Waterball.destroy_all
+		Airball.destroy_all
+		Player.destroy_all
+		$window.game_objects.destroy_all
+
 		super
 		# - half the image height
 		$ground_y = $window.height - 6 * 32 - 4
@@ -18,6 +26,8 @@ class Play < GameState
 		@background_music = Gosu::Song.new($window, "media/sounds/wizards_keep.ogg")
 		@background_music.play(looping = true)
 		@background_music.volume = Settings.music_volume
+
+		p Player.size
 	end
 
 	def update
@@ -45,24 +55,33 @@ class Play < GameState
 	end
 end
 
-class About < GameState
+class Instructions < GameState
+	def initialize
+		super
+		MouseFollower.create
+		@image = Image["instructions_sheet.png"]
+		MenuButton.create(text: "Back to menu", 
+						  x: $window.width - 300, 
+						  y: $window.height - 150, 
+						  action: lambda {switch_game_state(MainMenu)} )
+	end
+
+	def draw
+		super
+		@image.draw(0, 0, 0, 1.15, 1.15)
+	end
 end
 
 class MainMenu < GameState
 	def initialize
 		super
-		Fireball.destroy_all
-		Waterball.destroy_all
-		Airball.destroy_all
-		#Fixes a bug in which players were not properly destroyed if another game was started after the first game.
-		Player.destroy_all
-		$window.game_objects.destroy_all
+		MenuButton.destroy_all
+		MouseFollower.destroy_all
 
 		MouseFollower.create
 		@background_image = Image["images/bridge_and_sky.png"]
 		@logo = Image["images/menu/logo.png"]
 
-		#http://stackoverflow.com/questions/152699/open-the-default-browser-in-ruby
 		def link_to(link)
 			lambda {
 			if RbConfig::CONFIG['host_os'] =~ /mswin|mingw|cygwin/
@@ -75,15 +94,9 @@ class MainMenu < GameState
 			}
 		end
 
-		MenuButton.create("Start game", 	y: 330, action: lambda {switch_game_state(Play)} )
-		Fireball.create(x: $window.width * 0.5 - 175, y: 360, power: 100, owner: self)
-
-		MenuButton.create("Instructions", 	y: 440, action: link_to("www.google.com") )
-		Waterball.create(x: $window.width * 0.5 - 175, y: 470, power: 100, owner: self)
-
-		MenuButton.create("About", 			y: 550, action: link_to("www.google.com") )
-																	
-		Airball.create(x: $window.width * 0.5 - 175, y: 580, power: 100, owner: self)
+		MenuButton.create(text: "Start game", y: 350, action: lambda {switch_game_state(Play)} )
+		MenuButton.create(text: "Instructions", y: 460, action: lambda {switch_game_state(Instructions)} )
+		MenuButton.create(text: "About", y: 570, action: link_to("www.google.com") )												
 	end
 
 	def update
@@ -110,30 +123,39 @@ class MainMenu < GameState
 	end
 end
 
-class MenuButton < Chingu::Text
+class MenuButton < GameObject
 	traits :collision_detection, :bounding_box
-	def initialize(text, options = {})
+	
+	def initialize(options = {})
+		super
 		@button = Image["images/menu/button.png"]
-		options = {
-			x: $window.width * 0.5 - 100,
-			zorder: ZOrder::UI,
-			font: "media/SILKWONDER.ttf",
+		#@button.rotation_center = :center_center
+		
+		self.x = options[:x] || $window.width * 0.5
+		self.y = options[:y]
+		self.zorder = ZOrder::UI
 
-			size: 60,
-			padding: 15,
-			background: @button,
-		}.merge(options) 
+		text = options[:text]
+		font = "media/silkwonder.ttf"
+		size = 60
 
-		super(text, options)
-		#Changing the x attribute only moves the text, not the background - allowing the text to be centered in the background -
-		# else it would not be centered properly.
-		self.x += 25
+		@image = Gosu::Image.from_text($window, text, font, size)
+
+		#The action should be a block which dictates what will be done when the button is clicked
 	    @action = options[:action]
 	end
 
 	def update
-		self.color = Gosu::Color::WHITE 
+		self.color = Gosu::Color::WHITE
+		#Changes text colour on mouse over
 		each_bounding_box_collision(MouseFollower) { self.color = Gosu::Color::GREEN }
+	end
+
+	def draw
+		@button.draw(self.x - @button.width * 0.5, 
+					 self.y - @button.height * 0.5, 
+					 self.zorder-1)
+		super
 	end
 
 	def trigger
@@ -146,13 +168,13 @@ class MouseFollower < GameObject
 	def initialize(options={})
 		super
 		@image = Image["images/blank.bmp"]
+		self.input = {mouse_left: :click}
 	end
 
 	def update
 		super
 		self.x = $window.mouse_x
 		self.y = $window.mouse_y
-		click if holding?(:mouse_left)
 	end
 
 	def click;  each_bounding_box_collision(MenuButton) {|me, button| button.trigger } end

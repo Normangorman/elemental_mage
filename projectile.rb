@@ -72,7 +72,9 @@ class Projectile < GameObject
 		    if player != @owner and @released
 		    	#The amount of damage is done to the player is proportional the power of the projectile.
 		        player.hurt(@power / 25, self)
-		        explode 
+		        explode
+
+		        p player.inspect
 		        self.destroy
 		    end
 	    end
@@ -134,8 +136,6 @@ class Waterball < Projectile
 			self.each_bounding_box_collision(Airball) do |me, other|
 				if other.released
 			    	other.owner.power_shot = true
-			    	other.owner.projectile = nil
-
 			    	self.destroy
 			    	other.destroy
 			    end

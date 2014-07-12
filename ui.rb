@@ -3,8 +3,10 @@ class Lifebar < GameObject
 		super
 		@owner = options[:owner]
 		@hearts = []
+
+		PlayerHead.create(x: self.x + 2, y: self.y + 5, owner: @owner)
 		5.times do |n|
-			@hearts << Heart.create(x: self.x + n * 35, y: self.y)
+			@hearts << Heart.create(x: self.x + 60 + n * 35, y: self.y, owner: @owner)
 		end
 
 		@previous_life_value = @owner.life
@@ -55,6 +57,15 @@ class Heart < GameObject
 	end
 end
 
+class PlayerHead < GameObject
+	def initialize(options={})
+		super
+		@image = Image["animations/#{options[:owner].name}/head.png"]
+		self.zorder = ZOrder::UI
+	end
+end
+
+
 class Power_icon < GameObject
 	trait :effect
 	def initialize(options={})
@@ -85,40 +96,40 @@ class Power_icon < GameObject
 	end
 end
 
-class GameOverText < Chingu::Text
-	traits :effect, :timer
-	def initialize(name)
-		@button = Image["images/menu/button.png"]
+class GameOverText < GameObject
+	traits :timer
+	def initialize(options={})
+		super
+		name = options[:name]
 		#Because the game_over method is called on the player who loses, the name parameter will be the name of the
 		# losing player. Hence the name of the winning player needs to be inferred.
 		# This is done by swapping the number at the end of the player's name: 1 becomes 2 and vice versa.
-		text = "Player " + {"1" => "2", "2" => "1"}[name.split("").last] + " wins!"
+		text = "Player " + {"1" => "2", "2" => "1"}[name[-1]] + " wins!"
 
-		options = {
-			x: $window.width * 0.5 - 300,
-			y: $window.height * 0.5 - 100,
-			zorder: ZOrder::UI,
-			font: "media/SILKWONDER.ttf",
+		self.x = $window.width * 0.5
+		self.y = $window.height * 0.5
+		self.zorder = ZOrder::UI
 
-			size: 100,
-			padding: 15,
-			background: @button,
-		}
-
-		super(text, options)
+		font = "media/silkwonder.ttf"
+		size = 100
+		
 		#Changing the x attribute only moves the text, not the background - allowing the text to be centered in the background -
 		# else it would not be centered properly.
-		self.x += 50
-		self.alpha = 0
-		self.background.alpha = 0
+		@image = Gosu::Image.from_text($window, text, font, size)
+		@button = Image["images/menu/button.png"]
 
 		after(3000) do	
-			$window.switch_game_state(MainMenu)
+			$window.push_game_state(MainMenu, finalize: true)
 		end
 	end
 
-	def update
-		self.alpha += 5
-		self.background.alpha += 5
+	def draw
+		super
+		scale = 1.5
+		@button.draw(self.x - @button.width * scale * 0.5, 
+				 	 self.y - @button.height * scale * 0.5, 
+				 	 self.zorder-1,
+				 	 factor_x = scale,
+				 	 factor_y = scale)
 	end
 end
