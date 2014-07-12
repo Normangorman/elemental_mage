@@ -73,8 +73,6 @@ class Projectile < GameObject
 		    	#The amount of damage is done to the player is proportional the power of the projectile.
 		        player.hurt(@power / 25, self)
 		        explode
-
-		        p player.inspect
 		        self.destroy
 		    end
 	    end

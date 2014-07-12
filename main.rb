@@ -63,15 +63,11 @@ class Game < Chingu::Window
     super(1280, 800)    
     switch_game_state(MainMenu)
     transitional_game_state(Chingu::GameStates::FadeTo, {:speed => 5, :debug => true})
-	self.input = {:mouse_left => :caption}
+    $window.caption = "Elemental Mage"
   end
 
   def needs_cursor?
   	true
-  end
-
-  def caption
-  	self.caption = game_objects.size
   end
 
 end

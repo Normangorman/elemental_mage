@@ -26,13 +26,10 @@ class Play < GameState
 		@background_music = Gosu::Song.new($window, "media/sounds/wizards_keep.ogg")
 		@background_music.play(looping = true)
 		@background_music.volume = Settings.music_volume
-
-		p Player.size
 	end
 
 	def update
 		super
-		$window.caption = game_objects.size
 		spawn_scenery_objects
     	game_objects.destroy_if { |object| object.alpha == 0 }
 	end
@@ -68,7 +65,24 @@ class Instructions < GameState
 
 	def draw
 		super
-		@image.draw(0, 0, 0, 1.15, 1.15)
+		@image.draw(0, 0, 0)
+	end
+end
+
+class About < GameState
+	def initialize
+		super
+		MouseFollower.create
+		@image = Image["about_sheet.png"]
+		MenuButton.create(text: "Back to menu", 
+						  x: $window.width - 300, 
+						  y: $window.height - 150, 
+						  action: lambda {switch_game_state(MainMenu)} )
+	end
+
+	def draw
+		super
+		@image.draw(0, 0, 0)
 	end
 end
 
@@ -96,7 +110,7 @@ class MainMenu < GameState
 
 		MenuButton.create(text: "Start game", y: 350, action: lambda {switch_game_state(Play)} )
 		MenuButton.create(text: "Instructions", y: 460, action: lambda {switch_game_state(Instructions)} )
-		MenuButton.create(text: "About", y: 570, action: link_to("www.google.com") )												
+		MenuButton.create(text: "About", y: 570, action: lambda {switch_game_state(About)} )												
 	end
 
 	def update
