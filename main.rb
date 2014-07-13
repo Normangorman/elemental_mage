@@ -1,7 +1,10 @@
 require 'rubygems' rescue nil
-$LOAD_PATH.unshift File.join(File.expand_path(__FILE__), "..", "..", "lib")
-require 'chingu'
+#$LOAD_PATH.unshift File.join(File.expand_path(__FILE__), "media")
 
+require 'chingu'
+require 'yaml' # required for ocra.
+require 'fileutils'
+$:.unshift File.dirname($0)
 include Gosu
 include Chingu
 
@@ -26,7 +29,8 @@ end
 module Controls
 	@@player1 = {
 		s:	:look_down,
-		w:	:jump,
+		w:	:start_jump,
+		released_w: :jump,
 		d: 	:move_right,
 		a: 	:move_left,
 		
@@ -37,7 +41,8 @@ module Controls
 
 	@@player2 = {
 		down: 	:look_down,
-		up: 	:jump,
+		up: 	:start_jump,
+		released_up: :jump,
 		right: 	:move_right,
 		left:  	:move_left,
 		

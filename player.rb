@@ -34,8 +34,8 @@ class Player < GameObject
 
 		#Default to idle animation
 		change_anim(:idle)
+		@image = @animation.first
 		self.zorder = ZOrder::PLAYER
-		#Used to prevent jumping again until landed
 		@current_direction = :north
 
 		#Make relevant UI
@@ -53,8 +53,6 @@ class Player < GameObject
 		@animation = @animations[name]
 		@staff_x = self.x + @staff_positions[name].first
 		@staff_y = self.y + @staff_positions[name].last
-
-		@image = @animation.next #This is called by firing and movement methods in order to change the animation.
 	end
 
 	#called by projectiles when they collide with the player
@@ -203,15 +201,22 @@ class Player < GameObject
 		self.velocity_x -= 2 unless self.velocity_x <= -10
 	end
 
-	def jump
+	def start_jump
 		@current_direction = :north
-		return if @jumping
+		@start_time = Time.now
+	end
 
-		change_anim(:jumping)
-		self.velocity_y = -15
+	def jump
+		dt = Time.now - @start_time
+		unless dt > 0.5
+			return if @jumping
 
-		@jumping = true
-		@on_platform = false
+			change_anim(:jumping)
+			self.velocity_y = -15
+
+			@jumping = true
+			@on_platform = false
+		end
 	end
 
 	def look_down
